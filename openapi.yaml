@@ -151,10 +151,12 @@ components:
   schemas:
     Envelope:
       type: object
-      description: Standard response envelope shared by all endpoints.
+      description: |
+        Standard response envelope shared by all endpoints: `code` is `0` on success and
+        negative on failure. The status text key is `msg` on most endpoints; the AI-control
+        router (`/api/ai/control/*`) and PicoClaw endpoints use `message` for failures.
       required:
       - code
-      - msg
       properties:
         code:
           type: integer
@@ -162,11 +164,12 @@ components:
           example: 0
         msg:
           type: string
-          description: Human-readable status message.
+          description: Human-readable status message (key `message` on AI-control/PicoClaw failures).
           example: success
         data:
-          nullable: true
-          description: Response payload; omitted or `null` for endpoints that return no data.
+          description: |
+            Response payload; omitted or `null` for endpoints that return no data. Its type is
+            defined per endpoint (object, array or plain string).
     AuthLoginRequest:
       type: object
       description: Login credentials; the password is transported encrypted.
@@ -458,7 +461,7 @@ components:
     Control_Mode:
       type: string
       enum:
-      - false
+      - 'off'
       - mcp
       - picoclaw
       description: |
@@ -589,7 +592,7 @@ components:
         control_mode:
           type: string
           description: Control mode as seen by the PicoClaw service.
-          example: false
+          example: 'off'
         transitioning:
           type: boolean
           description: Control mode is transitioning.
@@ -753,11 +756,12 @@ components:
           enum:
           - '2.0'
         id:
-          description: Id of the request being answered (absent when the input could not be parsed).
-          nullable: true
           oneOf:
           - type: string
+            nullable: true
           - type: integer
+            nullable: true
+          description: Id of the request being answered (absent when the input could not be parsed).
           example: 2
         result:
           type: object
@@ -776,6 +780,7 @@ components:
             message:
               type: string
             data:
+              type: object
               nullable: true
     Mcp_InitializeResult:
       type: object
@@ -1198,6 +1203,7 @@ components:
           description: Protocol version; must be `2.0`.
           example: '2.0'
         id:
+          type: integer
           nullable: true
           description: |
             Request id, echoed back in the response; any JSON value (numbers are typical). `null`
@@ -1231,10 +1237,12 @@ components:
           description: Always `2.0`.
           example: '2.0'
         id:
+          type: integer
           nullable: true
           description: Echo of the request `id` (`null` when the request had none).
           example: 1
         result:
+          type: object
           nullable: true
           description: |
             Method result, present on success. For `tools/call` it matches
@@ -1263,11 +1271,12 @@ components:
           type: string
           example: PicoClaw control mode is not active
         data:
+          type: object
           nullable: true
           description: |
             Extra data; for `-32003` it is `{"reason": <CODE>, "control_mode": <mode>,
             "transitioning": <bool>}`.
-          example:
+          example: &id007
             reason: CONTROL_OWNED_BY_MCP
             control_mode: mcp
             transitioning: false
@@ -1388,6 +1397,7 @@ components:
           description: Human-readable error message.
           example: session not found
         data:
+          type: object
           nullable: true
           description: |
             Optional extra payload. Runtime/control failures carry `{"status": <runtime
@@ -1633,7 +1643,7 @@ components:
         mode:
           type: string
           enum:
-          - false
+          - 'off'
           - mcp
           - picoclaw
           description: Current owner of device control.
@@ -1764,7 +1774,7 @@ components:
         control_mode:
           type: string
           enum:
-          - false
+          - 'off'
           - mcp
           - picoclaw
           description: Flat copy of `control.mode`.
@@ -1838,7 +1848,7 @@ components:
           description: Absolute path of every image file. Empty when no image is present.
           items:
             type: string
-          example:
+          example: &id008
           - /data/ubuntu-24.04.2-live-server-amd64.iso
           - /data/images/win11.img
     StorageMountImageRequest:
@@ -1989,7 +1999,7 @@ components:
             One string per stored entry: `AA:BB:CC:DD:EE:FF` or `AA:BB:CC:DD:EE:FF <name>`.
           items:
             type: string
-          example:
+          example: &id006
           - AA:BB:CC:DD:EE:FF Office PC
           - 11:22:33:44:55:66
     NetDnsConfig:
@@ -2016,7 +2026,7 @@ components:
             files). Normalized and deduplicated.
           items:
             type: string
-          example:
+          example: &id002
           - 1.1.1.1
           - 8.8.8.8
         effective:
@@ -2024,14 +2034,14 @@ components:
           description: Nameservers currently in `/etc/resolv.conf` (what the device uses).
           items:
             type: string
-          example:
+          example: &id003
           - 1.1.1.1
         dhcp:
           type: array
           description: Nameservers learned from DHCP (may be empty).
           items:
             type: string
-          example: []
+          example: &id004 []
         info:
           $ref: '#/components/schemas/NetDnsInfo'
     NetDnsInfo:
@@ -2076,7 +2086,7 @@ components:
           description: Search domains from the DHCP resolv configuration (may be empty).
           items:
             type: string
-          example:
+          example: &id005
           - lan
     NetDnsSetRequest:
       type: object
@@ -2134,7 +2144,7 @@ components:
           description: User-defined shortcuts (the built-in ones live in the frontend).
           items:
             $ref: '#/components/schemas/HidShortcut'
-          example:
+          example: &id001
           - id: 3f1c2b8e-1f4a-4c2e-9d5a-8b7c6d5e4f3a
             keys:
             - code: ControlLeft
@@ -2763,7 +2773,7 @@ components:
           description: File names of the `.sh`/`.py` scripts in `/etc/kvm/scripts`.
           items:
             type: string
-          example:
+          example: &id010
           - backup.sh
           - monitor.py
     VmUploadedFile:
@@ -3059,7 +3069,7 @@ components:
           description: File names in `/etc/kvm/autostart` (no extension filter).
           items:
             type: string
-          example:
+          example: &id009
           - start-camera.sh
           - on-boot.py
     VmAutostartUploadRequest:
@@ -3172,7 +3182,7 @@ paths:
               release:
                 summary: Release control (chat-only PicoClaw)
                 value:
-                  mode: false
+                  mode: 'off'
       responses:
         '200':
           description: |
@@ -3210,7 +3220,7 @@ paths:
                     msg: success
                     data:
                       control:
-                        mode: false
+                        mode: 'off'
                         transitioning: false
                         changed_at: '2026-10-01T12:07:55.117203119+08:00'
                       runtime:
@@ -3223,9 +3233,9 @@ paths:
                         runtime_intent:
                           desired_running: true
                           updated_by: control_release_chat_only
-                        control_mode: false
+                        control_mode: 'off'
                         control:
-                          mode: false
+                          mode: 'off'
                           transitioning: false
                           can_control: false
                         capabilities:
@@ -3325,6 +3335,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AppPreviewState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: false
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3365,7 +3380,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3412,7 +3432,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3448,6 +3473,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AppUpdateServerConfig'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: false
+                  url: https://cdn.sipeed.com/nanokvm
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3502,6 +3533,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AppUpdateServerConfig'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: false
+                  url: https://cdn.sipeed.com/nanokvm
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3543,6 +3580,15 @@ paths:
         `uploaded package exceeds <n> bytes`, `sha256 checksum mismatch`,
         `inspect update package: ...`, `extract update package: ...`,
         `invalid update package layout: ...`.
+
+        **Example** (upload a local package with checksum verification):
+
+        ```sh
+        curl -b 'nano-kvm-token=<jwt>' \
+             -H 'X-SHA256-Checksum: 9f2c5d1b7a4e0c8d3f6b1a2e9c4d7f0b5a8e1c3d6f9b2a4c7e0d3f5a8b1c4e6d' \
+             -F 'file=@nanokvm_2.5.1.tar.gz' \
+             http://nanokvm.local/api/application/update/offline
+        ```
       security:
       - cookieAuth: []
       parameters:
@@ -3556,6 +3602,7 @@ paths:
           type: string
           pattern: ^[0-9a-fA-F]{64}$
           example: 9f2c5d1b7a4e0c8d3f6b1a2e9c4d7f0b5a8e1c3d6f9b2a4c7e0d3f5a8b1c4e6d
+        example: 9f2c5d1b7a4e0c8d3f6b1a2e9c4d7f0b5a8e1c3d6f9b2a4c7e0d3f5a8b1c4e6d
       requestBody:
         required: true
         content:
@@ -3581,7 +3628,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3620,6 +3672,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AppVersion'
+              example:
+                code: 0
+                msg: success
+                data:
+                  current: 2.5.1
+                  latest: 2.5.1
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3651,6 +3709,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AuthAccount'
+              example:
+                code: 0
+                msg: success
+                data:
+                  username: admin
+                  role: admin
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/auth/login:
@@ -3659,6 +3723,7 @@ paths:
       tags:
       - Authentication
       summary: Login
+      security: []
       description: |
         Authenticates a user and starts a session. Public endpoint (no cookie required).
 
@@ -3731,7 +3796,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
   /api/auth/logout:
     post:
       operationId: auth_logout
@@ -3770,7 +3840,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/auth/password:
@@ -3805,6 +3880,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AuthPasswordState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  isUpdated: true
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -3863,7 +3943,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/auth/users:
@@ -3892,6 +3977,15 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/AuthUsers'
+              example:
+                code: 0
+                msg: success
+                data:
+                  users:
+                  - username: alice
+                    role: user
+                    enabled: true
+                    systemAccount: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3941,7 +4035,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3988,6 +4087,7 @@ paths:
           type: string
           pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,31}$
           example: alice
+        example: alice
       requestBody:
         required: true
         content:
@@ -4008,7 +4108,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4040,6 +4145,7 @@ paths:
           type: string
           pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,31}$
           example: alice
+        example: alice
       responses:
         '200':
           description: Successful response
@@ -4051,7 +4157,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4088,6 +4199,7 @@ paths:
           type: string
           pattern: ^[A-Za-z0-9][A-Za-z0-9_.-]{0,31}$
           example: alice
+        example: alice
       requestBody:
         required: true
         content:
@@ -4107,7 +4219,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4141,6 +4258,15 @@ paths:
         On success the response repeats the idle state — `data.status` `idle`, empty `file` and
         `percentage`.
 
+        **Example** (upload a local ISO image with checksum verification):
+
+        ```sh
+        curl -b 'nano-kvm-token=<jwt>' \
+             -H 'X-SHA256-Sum: 9f2c5d1b7a4e0c8d3f6b1a2e9c4d7f0b5a8e1c3d6f9b2a4c7e0d3f5a8b1c4e6d' \
+             -F 'file=@debian-12.9.0-amd64-netinst.iso' \
+             http://nanokvm.local/api/download/file
+        ```
+
         Error codes (all `-1`): `invalid sha256sum`;
         `not enough space in /data: need <n> MiB including reserve, <m> MiB available`;
         `download in progress` (another transfer or update is running);
@@ -4159,6 +4285,7 @@ paths:
           type: string
           pattern: ^[0-9a-fA-F]{64}$
           example: 9f2c5d1b7a4e0c8d3f6b1a2e9c4d7f0b5a8e1c3d6f9b2a4c7e0d3f5a8b1c4e6d
+        example: 9f2c5d1b7a4e0c8d3f6b1a2e9c4d7f0b5a8e1c3d6f9b2a4c7e0d3f5a8b1c4e6d
       requestBody:
         required: true
         content:
@@ -4184,6 +4311,13 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/DlDownloadStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  status: in_progress
+                  file: https://downloads.example.com/ubuntu-24.04.iso
+                  percentage: 42.13%
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4239,6 +4373,13 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/DlDownloadStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  status: in_progress
+                  file: https://downloads.example.com/ubuntu-24.04.iso
+                  percentage: 42.13%
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4275,7 +4416,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4305,6 +4451,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/DlImageEnabled'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4345,6 +4496,13 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/DlDownloadStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  status: in_progress
+                  file: https://downloads.example.com/ubuntu-24.04.iso
+                  percentage: 42.13%
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4373,7 +4531,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4410,7 +4573,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4449,6 +4617,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/TsLogin'
+              example:
+                code: 0
+                msg: success
+                data:
+                  url: https://login.tailscale.com/a/1a2b3c4d5e6f
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4478,7 +4651,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4508,7 +4686,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4540,7 +4723,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4583,6 +4771,14 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/TsStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  state: running
+                  name: nanokvm
+                  ip: 100.101.102.103
+                  account: example.com
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4611,7 +4807,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4642,7 +4843,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4672,7 +4878,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4716,6 +4927,15 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/HidKeyboardLedStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  numLock: true
+                  capsLock: false
+                  scrollLock: false
+                  known: true
+                  updatedAt: '2026-10-01T05:21:52.123456789Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/hid/mode:
@@ -4753,6 +4973,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/HidMode'
+              example:
+                code: 0
+                msg: success
+                data:
+                  mode: normal
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -4804,7 +5029,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4869,7 +5099,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/hid/reset:
@@ -4908,7 +5143,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4961,7 +5201,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -5002,7 +5247,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -5037,6 +5287,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/HidLeaderKey'
+              example:
+                code: 0
+                msg: success
+                data:
+                  key: MetaRight
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -5081,7 +5336,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -5121,6 +5381,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/HidShortcutList'
+              example:
+                code: 0
+                msg: success
+                data:
+                  shortcuts: *id001
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/internal/usb/recover:
@@ -5166,7 +5431,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/mcp:
@@ -5550,6 +5820,7 @@ paths:
             text/plain:
               schema:
                 type: string
+              example: 'Bad Request: Unsupported protocol version (supported versions: 2025-11-25,2025-06-18,2025-03-26,2024-11-05)'
         '401':
           description: Missing or invalid bearer key.
           content:
@@ -5765,6 +6036,8 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Mcp_SetConfigRequest'
+            example:
+              enabled: true
       responses:
         '200':
           description: |
@@ -5897,6 +6170,21 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/NetDnsConfig'
+              example:
+                code: 0
+                msg: success
+                data:
+                  mode: manual
+                  servers: *id002
+                  effective: *id003
+                  dhcp: *id004
+                  info:
+                    interface: eth0
+                    type: Wired
+                    address: 192.168.1.42/24
+                    subnetMask: 255.255.255.0
+                    gateway: 192.168.1.1
+                    searchDomains: *id005
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -5961,7 +6249,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6002,6 +6295,14 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/NetWifiStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  supported: true
+                  apMode: false
+                  connected: true
+                  ssid: HomeNet
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6011,6 +6312,7 @@ paths:
       tags:
       - Network
       summary: Connect Wi-Fi without auth
+      security: []
       description: |
         Wi-Fi onboarding endpoint behind the setup page `/wifi`. **Public**: no session cookie is
         required (this is the endpoint used while the device is still unconfigured).
@@ -6054,6 +6356,7 @@ paths:
         schema:
           type: string
           example: kvm123456
+        example: kvm123456
       requestBody:
         required: true
         content:
@@ -6074,7 +6377,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
   /api/network/wifi/connect:
     post:
       operationId: net_connectWifi
@@ -6127,7 +6435,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6164,7 +6477,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6175,6 +6493,7 @@ paths:
       tags:
       - Network
       summary: Verify AP login
+      security: []
       description: |
         Verifies the AP passphrase before the onboarding form is shown. **Public**: no session
         cookie is required.
@@ -6202,6 +6521,7 @@ paths:
         schema:
           type: string
           example: kvm123456
+        example: kvm123456
       responses:
         '200':
           description: Successful response
@@ -6213,7 +6533,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
   /api/network/wol:
     post:
       operationId: net_wakeOnLan
@@ -6257,7 +6582,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/network/wol/mac:
@@ -6294,6 +6624,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/NetWolMacList'
+              example:
+                code: 0
+                msg: success
+                data:
+                  macs: *id006
         '401':
           $ref: '#/components/responses/Unauthorized'
     delete:
@@ -6333,7 +6668,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6381,7 +6721,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6523,6 +6868,14 @@ paths:
                       data:
                         $ref: '#/components/schemas/PicoLocalActionResult'
                 - $ref: '#/components/schemas/PicoLocalError'
+              example:
+                code: 0
+                msg: success
+                data:
+                  action: batch
+                  duration_ms: 742
+                  hid_writes: 12
+                  executed_actions: 5
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/picoclaw/agent/profile:
@@ -6588,6 +6941,46 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoAgentProfileResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  profile: kvm
+                  status:
+                    ready: true
+                    installed: true
+                    installing: false
+                    install_progress: 100
+                    install_stage: installed
+                    install_path: /usr/bin/picoclaw
+                    agent_profile: kvm
+                    model_configured: true
+                    model_name: gpt-5.4
+                    status: ready
+                    config_error: ''
+                    last_error: ''
+                    checked_at: '2026-10-01T05:30:25Z'
+                    current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                    restoring: false
+                    runtime_intent:
+                      desired_running: true
+                      updated_at: '2026-10-01T05:30:25Z'
+                      updated_by: web
+                      last_started_at: '2026-10-01T05:30:25Z'
+                      last_stopped_at: '2026-10-01T12:00:00Z'
+                      last_error: ''
+                    control_mode: picoclaw
+                    transitioning: false
+                    control:
+                      mode: picoclaw
+                      transitioning: false
+                      can_control: true
+                      last_error: ''
+                      changed_at: '2026-10-01T05:29:58Z'
+                    capabilities:
+                      chat: true
+                      read_only_tools: true
+                      device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6862,6 +7255,16 @@ paths:
                       data:
                         $ref: '#/components/schemas/PicoLocalLoadImageResult'
                 - $ref: '#/components/schemas/PicoLocalError'
+              example:
+                code: 0
+                msg: success
+                data:
+                  accepted: true
+                  session_id: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                  message_id: 3b0c8f4e-1d2a-4c6b-8e9f-0a1b2c3d4e5f
+                  path: /tmp/picoclaw_media/upload-1.png
+                  user_prompt: What error message is shown in the dialog?
+                  instructed_at: '2026-10-01T13:34:12.123456789+08:00'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/picoclaw/mcp:
@@ -6974,6 +7377,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PicoLocalJsonRpcResponse'
+              example:
+                jsonrpc: '2.0'
+                id: 1
+                result: {}
+                error:
+                  code: -32003
+                  message: PicoClaw control mode is not active
+                  data: *id007
         '400':
           description: |
             The request body is not valid JSON; the body is a JSON-RPC error response with code
@@ -6982,6 +7393,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PicoLocalJsonRpcResponse'
+              example:
+                jsonrpc: '2.0'
+                id: 1
+                result: {}
+                error:
+                  code: -32003
+                  message: PicoClaw control mode is not active
+                  data: *id007
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/picoclaw/model/config:
@@ -7067,6 +7486,46 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoModelConfigResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  model_name: gpt-5.4
+                  status:
+                    ready: true
+                    installed: true
+                    installing: false
+                    install_progress: 100
+                    install_stage: installed
+                    install_path: /usr/bin/picoclaw
+                    agent_profile: kvm
+                    model_configured: true
+                    model_name: gpt-5.4
+                    status: ready
+                    config_error: ''
+                    last_error: ''
+                    checked_at: '2026-10-01T05:30:25Z'
+                    current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                    restoring: false
+                    runtime_intent:
+                      desired_running: true
+                      updated_at: '2026-10-01T05:30:25Z'
+                      updated_by: web
+                      last_started_at: '2026-10-01T05:30:25Z'
+                      last_stopped_at: '2026-10-01T12:00:00Z'
+                      last_error: ''
+                    control_mode: picoclaw
+                    transitioning: false
+                    control:
+                      mode: picoclaw
+                      transitioning: false
+                      can_control: true
+                      last_error: ''
+                      changed_at: '2026-10-01T05:29:58Z'
+                    capabilities:
+                      chat: true
+                      read_only_tools: true
+                      device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7115,6 +7574,49 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoRuntimeInstallResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  installed: false
+                  binary: /usr/bin/picoclaw
+                  download: https://cdn.sipeed.com/nanokvm/resources/picoclaw/v0.2.8/picoclaw_Linux_riscv64.tar.gz
+                  output: picoclaw installation started
+                  status:
+                    ready: true
+                    installed: true
+                    installing: false
+                    install_progress: 100
+                    install_stage: installed
+                    install_path: /usr/bin/picoclaw
+                    agent_profile: kvm
+                    model_configured: true
+                    model_name: gpt-5.4
+                    status: ready
+                    config_error: ''
+                    last_error: ''
+                    checked_at: '2026-10-01T05:30:25Z'
+                    current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                    restoring: false
+                    runtime_intent:
+                      desired_running: true
+                      updated_at: '2026-10-01T05:30:25Z'
+                      updated_by: web
+                      last_started_at: '2026-10-01T05:30:25Z'
+                      last_stopped_at: '2026-10-01T12:00:00Z'
+                      last_error: ''
+                    control_mode: picoclaw
+                    transitioning: false
+                    control:
+                      mode: picoclaw
+                      transitioning: false
+                      can_control: true
+                      last_error: ''
+                      changed_at: '2026-10-01T05:29:58Z'
+                    capabilities:
+                      chat: true
+                      read_only_tools: true
+                      device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7157,6 +7659,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoLocalRuntimeSession'
+              example:
+                code: 0
+                msg: success
+                data:
+                  current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                  checked_at: '2026-10-01T13:34:12.123456789+08:00'
         '401':
           $ref: '#/components/responses/Unauthorized'
     delete:
@@ -7208,6 +7716,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoRuntimeSessionReleaseResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  released: true
+                  current_session: ''
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7267,6 +7781,48 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoRuntimeStartResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  started: true
+                  command: /kvmapp/system/init.d/S96picoclaw start
+                  output: PicoClaw gateway started
+                  status:
+                    ready: true
+                    installed: true
+                    installing: false
+                    install_progress: 100
+                    install_stage: installed
+                    install_path: /usr/bin/picoclaw
+                    agent_profile: kvm
+                    model_configured: true
+                    model_name: gpt-5.4
+                    status: ready
+                    config_error: ''
+                    last_error: ''
+                    checked_at: '2026-10-01T05:30:25Z'
+                    current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                    restoring: false
+                    runtime_intent:
+                      desired_running: true
+                      updated_at: '2026-10-01T05:30:25Z'
+                      updated_by: web
+                      last_started_at: '2026-10-01T05:30:25Z'
+                      last_stopped_at: '2026-10-01T12:00:00Z'
+                      last_error: ''
+                    control_mode: picoclaw
+                    transitioning: false
+                    control:
+                      mode: picoclaw
+                      transitioning: false
+                      can_control: true
+                      last_error: ''
+                      changed_at: '2026-10-01T05:29:58Z'
+                    capabilities:
+                      chat: true
+                      read_only_tools: true
+                      device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7323,6 +7879,44 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoRuntimeStatus'
+              example:
+                code: 0
+                msg: success
+                data:
+                  ready: true
+                  installed: true
+                  installing: false
+                  install_progress: 100
+                  install_stage: installed
+                  install_path: /usr/bin/picoclaw
+                  agent_profile: kvm
+                  model_configured: true
+                  model_name: gpt-5.4
+                  status: ready
+                  config_error: ''
+                  last_error: ''
+                  checked_at: '2026-10-01T05:30:25Z'
+                  current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                  restoring: false
+                  runtime_intent:
+                    desired_running: true
+                    updated_at: '2026-10-01T05:30:25Z'
+                    updated_by: web
+                    last_started_at: '2026-10-01T05:30:25Z'
+                    last_stopped_at: '2026-10-01T12:00:00Z'
+                    last_error: ''
+                  control_mode: picoclaw
+                  transitioning: false
+                  control:
+                    mode: picoclaw
+                    transitioning: false
+                    can_control: true
+                    last_error: ''
+                    changed_at: '2026-10-01T05:29:58Z'
+                  capabilities:
+                    chat: true
+                    read_only_tools: true
+                    device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7373,6 +7967,48 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoRuntimeStartResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  started: true
+                  command: /kvmapp/system/init.d/S96picoclaw start
+                  output: PicoClaw gateway started
+                  status:
+                    ready: true
+                    installed: true
+                    installing: false
+                    install_progress: 100
+                    install_stage: installed
+                    install_path: /usr/bin/picoclaw
+                    agent_profile: kvm
+                    model_configured: true
+                    model_name: gpt-5.4
+                    status: ready
+                    config_error: ''
+                    last_error: ''
+                    checked_at: '2026-10-01T05:30:25Z'
+                    current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                    restoring: false
+                    runtime_intent:
+                      desired_running: true
+                      updated_at: '2026-10-01T05:30:25Z'
+                      updated_by: web
+                      last_started_at: '2026-10-01T05:30:25Z'
+                      last_stopped_at: '2026-10-01T12:00:00Z'
+                      last_error: ''
+                    control_mode: picoclaw
+                    transitioning: false
+                    control:
+                      mode: picoclaw
+                      transitioning: false
+                      can_control: true
+                      last_error: ''
+                      changed_at: '2026-10-01T05:29:58Z'
+                    capabilities:
+                      chat: true
+                      read_only_tools: true
+                      device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7426,6 +8062,49 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoRuntimeInstallResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  installed: false
+                  binary: /usr/bin/picoclaw
+                  download: https://cdn.sipeed.com/nanokvm/resources/picoclaw/v0.2.8/picoclaw_Linux_riscv64.tar.gz
+                  output: picoclaw installation started
+                  status:
+                    ready: true
+                    installed: true
+                    installing: false
+                    install_progress: 100
+                    install_stage: installed
+                    install_path: /usr/bin/picoclaw
+                    agent_profile: kvm
+                    model_configured: true
+                    model_name: gpt-5.4
+                    status: ready
+                    config_error: ''
+                    last_error: ''
+                    checked_at: '2026-10-01T05:30:25Z'
+                    current_session: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                    restoring: false
+                    runtime_intent:
+                      desired_running: true
+                      updated_at: '2026-10-01T05:30:25Z'
+                      updated_by: web
+                      last_started_at: '2026-10-01T05:30:25Z'
+                      last_stopped_at: '2026-10-01T12:00:00Z'
+                      last_error: ''
+                    control_mode: picoclaw
+                    transitioning: false
+                    control:
+                      mode: picoclaw
+                      transitioning: false
+                      can_control: true
+                      last_error: ''
+                      changed_at: '2026-10-01T05:29:58Z'
+                    capabilities:
+                      chat: true
+                      read_only_tools: true
+                      device_write: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7564,6 +8243,16 @@ paths:
                       data:
                         $ref: '#/components/schemas/PicoLocalScreenshotMeta'
                 - $ref: '#/components/schemas/PicoLocalError'
+              example:
+                code: 0
+                msg: success
+                data:
+                  image_base64: /9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwcJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPDIzM//AABEIAAEAAQMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQAAAAAAAAECEgADBREhMUEGEyFRBhRxIjCBkaHRFUNScuHw8f/EABQBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=
+                  source_width: 1280
+                  source_height: 720
+                  capture_width: 960
+                  capture_height: 540
+                  format: jpeg
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/picoclaw/sessions:
@@ -7610,14 +8299,18 @@ paths:
           type: integer
           default: 0
           minimum: 0
+          example: 0
         description: Number of sessions to skip after sorting.
+        example: 0
       - in: query
         name: limit
         required: false
         schema:
           type: integer
           default: 20
+          example: 20
         description: Maximum number of sessions to return. Values `<= 0` are replaced by the default `20`.
+        example: 20
       responses:
         '200':
           description: |
@@ -7634,6 +8327,16 @@ paths:
                       type: array
                       items:
                         $ref: '#/components/schemas/PicoSessionListItem'
+              example:
+                code: 0
+                msg: success
+                data:
+                - id: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                  title: Power on the server and open the BIOS
+                  preview: Power on the server and open the BIOS
+                  message_count: 12
+                  created: '2026-09-28T09:12:44Z'
+                  updated: '2026-09-28T09:31:07Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7688,6 +8391,17 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoSessionDetail'
+              example:
+                code: 0
+                msg: success
+                data:
+                  id: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                  messages:
+                  - role: user
+                    content: Take a screenshot of the remote screen.
+                  summary: Powered on the host and opened the BIOS menu.
+                  created: '2026-09-28T09:12:44Z'
+                  updated: '2026-09-28T09:31:07Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7745,6 +8459,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/PicoSessionDeleteResult'
+              example:
+                code: 0
+                msg: success
+                data:
+                  id: 7f9c2b1e-6a4d-4b8f-9c2e-1f0a3d5e7b90
+                  deleted: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7793,6 +8513,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/StorageCdromFlag'
+              example:
+                code: 0
+                msg: success
+                data:
+                  cdrom: 0
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7835,6 +8560,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/StorageImageList'
+              example:
+                code: 0
+                msg: success
+                data:
+                  files: *id008
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7888,7 +8618,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -7969,7 +8704,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8011,6 +8751,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/StorageMountedImage'
+              example:
+                code: 0
+                msg: success
+                data:
+                  file: /data/ubuntu-24.04.2-live-server-amd64.iso
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8300,10 +9045,12 @@ paths:
         required: false
         schema:
           type: string
+          example: '1727779200000'
         description: |
           Ignored by the server. The official web UI appends a monotonically increasing value to
           bust browser caches when the stream is re-opened. Any other query parameter is ignored
           as well.
+        example: '1727779200000'
       responses:
         '200':
           description: |
@@ -8383,6 +9130,8 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Stream_UpdateFrameDetectReq'
+            example:
+              enabled: true
       responses:
         '200':
           description: |
@@ -8396,8 +9145,13 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
                       description: Not returned; this endpoint has no payload.
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/stream/mjpeg/detect/stop:
@@ -8440,6 +9194,8 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Stream_StopFrameDetectReq'
+            example:
+              duration: 10
       responses:
         '200':
           description: |
@@ -8453,8 +9209,13 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
                       description: Not returned; this endpoint has no payload.
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/autostart:
@@ -8485,6 +9246,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmAutostartList'
+              example:
+                code: 0
+                msg: success
+                data:
+                  files: *id009
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8527,6 +9293,10 @@ paths:
                       type: string
                       description: Full content of the autostart script.
                       example: '#!/bin/sh'
+              example:
+                code: 0
+                msg: success
+                data: '#!/bin/sh'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8587,6 +9357,10 @@ paths:
                       type: string
                       description: File name of the written autostart script (echoes the path parameter).
                       example: start-camera.sh
+              example:
+                code: 0
+                msg: success
+                data: start-camera.sh
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8622,7 +9396,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8657,6 +9436,13 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmVirtualDeviceState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  network: true
+                  media: false
+                  disk: false
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8715,6 +9501,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmVirtualDeviceOn'
+              example:
+                code: 0
+                msg: success
+                data:
+                  true: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8749,6 +9540,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmGpioState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  pwr: true
+                  hdd: false
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -8796,7 +9593,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/hardware:
@@ -8827,6 +9629,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmHardware'
+              example:
+                code: 0
+                msg: success
+                data:
+                  version: PCIE
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/hdmi:
@@ -8860,6 +9667,13 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmHdmiState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: true
+                  signal: true
+                  idleTimeout: 30
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/hdmi/disable:
@@ -8888,7 +9702,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8919,7 +9738,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -8953,7 +9777,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/hdmi/timeout:
@@ -8997,7 +9826,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9028,6 +9862,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmHostname'
+              example:
+                code: 0
+                msg: success
+                data:
+                  hostname: nanokvm
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -9069,7 +9908,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9114,6 +9958,19 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmInfo'
+              example:
+                code: 0
+                msg: success
+                data:
+                  ips:
+                  - name: eth0
+                    addr: 192.168.1.42
+                    version: IPv4
+                    type: Wired
+                  mdns: nanokvm.local
+                  image: v1.4.2
+                  application: 2.5.1
+                  deviceKey: 0a1b2c3d4e5f
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/input-region:
@@ -9161,6 +10018,29 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmInputRegion'
+              example:
+                code: 0
+                msg: success
+                data:
+                  mode: auto
+                  frameWidth: 1280
+                  frameHeight: 720
+                  left: 0
+                  top: 0
+                  width: 640
+                  height: 480
+                  resolutions:
+                  - width: 1920
+                    height: 1080
+                  selectedResolution: 1920x1080
+                  regions:
+                  - frameWidth: 1280
+                    frameHeight: 720
+                    left: 0
+                    top: 0
+                    width: 640
+                    height: 480
+                  selectedRegion: 640x480
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -9244,7 +10124,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/input-resolution:
@@ -9274,6 +10159,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmInputResolution'
+              example:
+                code: 0
+                msg: success
+                data:
+                  width: 1920
+                  height: 1080
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/mdns:
@@ -9299,6 +10190,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmMdnsState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9330,7 +10226,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9362,7 +10263,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9395,6 +10301,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmMemoryLimit'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: true
+                  limit: 75
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9442,7 +10354,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9477,6 +10394,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmMouseJiggler'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: true
+                  mode: relative
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9535,7 +10458,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9570,6 +10498,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmOledState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  exist: true
+                  sleep: 60
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9610,7 +10544,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9679,7 +10618,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/vm/script:
@@ -9710,6 +10654,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmScriptList'
+              example:
+                code: 0
+                msg: success
+                data:
+                  files: *id010
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9750,7 +10699,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9807,6 +10761,12 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmScriptRun'
+              example:
+                code: 0
+                msg: success
+                data:
+                  log: |
+                    backup finished
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9826,6 +10786,12 @@ paths:
         submitted file name is used. The directory is created (mode `0755`) when missing, the
         file is stored with the owner-execute bit added (`0100`) and an existing file with the
         same name is overwritten.
+
+        **Example** (upload a shell script):
+
+        ```sh
+        curl -b 'nano-kvm-token=<jwt>' -F 'file=@backup.sh' http://nanokvm.local/api/vm/script/upload
+        ```
 
         Error codes: `-1` `bad request` (no `file` part in the request), `-2` `invalid arguments`
         (name does not end in `.sh`/`.py`), `-2` `save failed` (write error).
@@ -9856,6 +10822,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmUploadedFile'
+              example:
+                code: 0
+                msg: success
+                data:
+                  file: backup.sh
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9886,6 +10857,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmSshState'
+              example:
+                code: 0
+                msg: success
+                data:
+                  enabled: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9916,7 +10892,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9947,7 +10928,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -9977,6 +10963,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmSwap'
+              example:
+                code: 0
+                msg: success
+                data:
+                  size: 256
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -10027,7 +11018,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -10061,7 +11057,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -10192,7 +11193,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -10227,6 +11233,11 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/VmWebTitle'
+              example:
+                code: 0
+                msg: success
+                data:
+                  title: Rack 3 KVM
         '401':
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -10265,7 +11276,12 @@ paths:
                 - type: object
                   properties:
                     data:
+                      type: object
                       nullable: true
+              example:
+                code: 0
+                msg: success
+                data: {}
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
